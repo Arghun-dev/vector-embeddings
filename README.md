@@ -102,3 +102,69 @@ async function splitDocument() {
 - Shoter chunks capture precise meaning but might miss wider context.
 - Longer chunks grasp more context but can produce too broad a scope of information, potentially leading to confusion for the model processing it. So, you'll likely have to experiment with various chunk sizes.
 ‍‍‍‍‍‍
+
+### Generate chunk embeddings and save it to supabase Vector Database
+
+```js
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { openai, supabase } from './config.js';
+
+/** 
+ * Split movies.txt into text chunks.
+ * Returns LangChain's array of Document objects.
+ */
+async function splitDocument(documentPath) {
+  // Fetch the text file and wait for its content
+  const response = await fetch(documentPath);
+  const text = await response.text();
+  
+  // Initialize the splitter with desired chunk size and overlap
+  const splitter = new RecursiveCharacterTextSplitter({
+    chunkSize: 150,
+    chunkOverlap: 15,
+  });
+  
+  // Create documents (each document is an object with a pageContent property)
+  const output = await splitter.createDocuments([text]);
+  return output;
+}
+
+/**
+ * Create an embedding for each text chunk and store both the text and its embedding in Supabase.
+ */
+async function createAndStoreEmbeddings() {
+  try {
+    const chunkData = await splitDocument("movies.txt");
+    
+    for (const cd of chunkData) {
+      // Generate embedding for the chunk's text
+      const embeddingResponse = await openai.embeddings.create({
+        model: "text-embedding-3-small",
+        input: cd.pageContent,
+        encoding_format: "float",
+      });
+      
+      // Extract the embedding vector from the response
+      const embeddedChunk = embeddingResponse.data[0].embedding;
+      
+      // Insert the text chunk and its embedding into the Supabase 'embeddings' table
+      const { data, error } = await supabase
+        .from('embeddings')
+        .insert([
+          { text: cd.pageContent, embedding: embeddedChunk }
+        ]);
+      
+      if (error) {
+        console.error("Error inserting embedding:", error);
+      } else {
+        console.log("Inserted embedding for chunk (first 30 chars):", cd.pageContent.slice(0, 30));
+      }
+    }
+  } catch (err) {
+    console.error("Error in createAndStoreEmbeddings:", err);
+  }
+}
+
+// Execute the function
+createAndStoreEmbeddings();
+```
