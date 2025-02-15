@@ -178,3 +178,70 @@ async function createAndStoreEmbeddings() {
 // Execute the function
 createAndStoreEmbeddings();
 ```
+
+
+## Building a simple search function
+
+Finally, let's create an Edge Function to perform our similarity search:
+
+```js
+import express from 'express';
+import cors from 'cors';
+import { Configuration, OpenAIApi } from 'openai';
+import { supabaseClient } from './lib/supabase';
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Middleware
+app.use(express.json());
+app.use(
+  cors({
+    origin: '*',
+    allowedHeaders: ['authorization', 'x-client-info', 'apikey', 'content-type'],
+  })
+);
+
+// Preflight OPTIONS handler
+app.options('*', (req, res) => res.sendStatus(200));
+
+// POST route to handle the embedding and document matching
+app.post('/', async (req, res) => {
+  try {
+    // Extract the search query from the request body
+    const { query } = req.body;
+    const input = query.replace(/\n/g, ' ');
+
+    // Initialize OpenAI client
+    const configuration = new Configuration({
+      apiKey: '<YOUR_OPENAI_API_KEY>',
+    });
+    const openai = new OpenAIApi(configuration);
+
+    // Create an embedding for the query
+    const embeddingResponse = await openai.createEmbedding({
+      model: 'text-embedding-ada-002',
+      input,
+    });
+    const [{ embedding }] = embeddingResponse.data.data;
+
+    // Call Supabase RPC to match documents using the embedding
+    const { data: documents, error } = await supabaseClient.rpc('match_documents', {
+      query_embedding: embedding,
+      match_threshold: 0.78,
+      match_count: 10,
+    });
+
+    if (error) throw error;
+
+    res.json(documents);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});
+```
