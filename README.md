@@ -2,6 +2,13 @@
 
 Reference: https://supabase.com/blog/openai-embeddings-postgres-vector
 
+---
+**OpenAI Embedding Model** -> text-embedding-3-small or text-embedding-3-large
+**Supabase** -> Open source postgresql database which has a vector database extension we can use
+**Similarity search** -> search using comparing embeddings in supabase `document_match` custom remote procedure function
+**Smarter Searcg**
+---
+
 in this code I'm using `Semantic Search` using `Vector embeddings and Database` and create a conversational response using OpenAI gpt-4 model.
 
 ```js
