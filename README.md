@@ -103,7 +103,7 @@ async function splitDocument() {
 - Longer chunks grasp more context but can produce too broad a scope of information, potentially leading to confusion for the model processing it. So, you'll likely have to experiment with various chunk sizes.
 ‍‍‍‍‍‍
 
-### Generate chunk embeddings and save it to supabase Vector Database
+### Generate chunk vector embeddings and store it to supabase Vector Database
 
 ```js
 import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
