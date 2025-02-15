@@ -6,6 +6,7 @@ Reference: https://supabase.com/blog/openai-embeddings-postgres-vector
 - OpenAI Embedding Model -> text-embedding-3-small or text-embedding-3-large
 - Supabase -> Open source postgresql database which has a vector database extension we can use
 - Similarity search -> search using comparing embeddings in supabase `document_match` custom remote procedure function
+- Langchain -> we need to create chunk of our long texts, `Langchain` is a framework that return chunks of a long text.
 - Smarter Searcg
 ---
 
