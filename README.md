@@ -57,3 +57,48 @@ async function getChatCompletion(text, query) {
   console.log(response.choices[0].message.content);
 }
 ```
+
+## Long Text File
+
+If you have a long text file it's better you first chunk your text file.
+
+
+**Effective chunking**
+
+1. Ensure content is free from unnecessary or irrelevant information
+2. Remove HTML tags, characters, or symbols that can affect your embeddings
+3. Correct typos
+4. Remove any repeated text, and standardize your text formatting
+
+
+It's common to use a framework to manage the chunking -> `Langchain` is one of the most popular frameworks for developing AI powered apps, and it includes incredible tools for splitting text.
+
+```js
+import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+
+// LangChain text splitter
+async function splitDocument() {
+  const response = await fetch('podcasts.txt');
+  const text = await response.text();
+  const splitter = new RecursiveCharacterTextSplitter({
+   chunkSize: 150,
+   chunkOverlap: 15
+  })
+
+  const output = await splitter.createDocuments([text])
+}
+```
+
+### Choosing a chunk size:
+
+. Depend on the type of content: short content vs. large documents
+. Consider the embedding model and its token limits
+. User queries: short and specific vs. longer and more detailed
+. Consider how you'll use the retrieved results
+
+
+**RecursiveCharacterTextSplitter:** splits the text iteratively into optimal chunk sizes, if the initial split doesn't produce the desired size or structure, it repeatedly or recursively calls itself using a different separators that might produce better results, and it does that until it reaches the desired size. Because of this efficiency, `Recuresive` splitting is often recommended for generic text.
+
+- Shoter chunks capture precise meaning but might miss wider context.
+- Longer chunks grasp more context but can produce too broad a scope of information, potentially leading to confusion for the model processing it. So, you'll likely have to experiment with various chunk sizes.
+‍‍‍‍‍‍
