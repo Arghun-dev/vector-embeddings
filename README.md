@@ -368,3 +368,14 @@ app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
 ```
+
+## Streaming results
+
+OpenAI API responses take longer to depending on the length of the “answer”. ChatGPT has a nice UX for this by streaming the response to the user immediately. You can see a similar effect for the Supabase docs:
+
+The OpenAI API supports completion streaming with Server Side Events. Supabase Edge Functions are run Deno, which also supports Server Side Events. Check out this commit to see how we modified the Function above to build a streaming interface.
+
+# Wrap up
+Storing embeddings in Postgres opens a world of possibilities. You can combine your search function with telemetry functions, add an user-provided feedback (thumbs up/down), and make your search feel more integrated with your products.
+
+The pgvector extension is available on all new Supabase projects today. To try it out, launch a new Postgres database: database.new
