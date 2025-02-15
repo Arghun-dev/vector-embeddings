@@ -9,7 +9,7 @@ Reference: https://supabase.com/blog/openai-embeddings-postgres-vector
 - Smarter Searcg
 ---
 
-in this code I'm using `Semantic Search` using `Vector embeddings and Database` and create a conversational response using OpenAI gpt-4 model.
+In this example based on user input we use similarity search to seach and find nearest match and generate a response using `ChatGPT` chat completion API.
 
 ```js
 import { openai, supabase } from './config.js';
