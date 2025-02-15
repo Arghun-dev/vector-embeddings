@@ -1,5 +1,7 @@
 # first-ai-app
 
+in this code I'm using `Semantic Search` using `Vector embeddings and Database` and create a conversational response using OpenAI gpt-4 model.
+
 ```js
 import { openai, supabase } from './config.js';
 
