@@ -245,3 +245,126 @@ app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
 });
 ```
+
+## Building a smarter search function
+
+ChatGPT doesn't just return existing documents. It's able to assimilate a variety of information into a single, cohesive answer. To do this, we need to provide GPT with some relevant documents, and a prompt that it can use to formulate this answer.
+
+One of the biggest challenges of OpenAI's text-davinci-003 completion model is the 4000 token limit. You must fit both your prompt and the resulting completion within the 4000 tokens. This makes it challenging if you wanted to prompt GPT-3 to answer questions about your own custom knowledge base that would never fit in a single prompt.
+
+Embeddings can help solve this by splitting your prompts into a two-phased process:
+
+Query your embedding database for the most relevant documents related to the question
+Inject these documents as context for GPT-3 to reference in its answer
+Here's another Edge Function that expands upon the simple example above:
+
+```js
+import express from 'express';
+import cors from 'cors';
+import { Configuration, OpenAIApi } from 'openai';
+import GPT3Tokenizer from 'gpt3-tokenizer';
+import { oneLine, stripIndent } from 'common-tags';
+import { supabaseClient } from './lib/supabase';
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+// Middleware
+app.use(express.json());
+app.use(
+  cors({
+    origin: '*',
+    allowedHeaders: ['authorization', 'x-client-info', 'apikey', 'content-type'],
+  })
+);
+
+// Preflight OPTIONS handler
+app.options('*', (req, res) => res.sendStatus(200));
+
+// POST route for handling the request
+app.post('/', async (req, res) => {
+  try {
+    // Extract the query and normalize input
+    const { query } = req.body;
+    const input = query.replace(/\n/g, ' ');
+
+    // Initialize OpenAI client
+    const configuration = new Configuration({ apiKey: '<YOUR_OPENAI_API_KEY>' });
+    const openai = new OpenAIApi(configuration);
+
+    // Generate an embedding for the query
+    const embeddingResponse = await openai.createEmbedding({
+      model: 'text-embedding-ada-002',
+      input,
+    });
+    const [{ embedding }] = embeddingResponse.data.data;
+
+    // Fetch matching documents from Supabase
+    const { data: documents, error } = await supabaseClient.rpc('match_documents', {
+      query_embedding: embedding,
+      match_threshold: 0.78,
+      match_count: 10,
+    });
+
+    if (error) throw error;
+
+    // Tokenize and concatenate context sections from documents
+    const tokenizer = new GPT3Tokenizer({ type: 'gpt3' });
+    let tokenCount = 0;
+    let contextText = '';
+
+    for (let i = 0; i < documents.length; i++) {
+      const document = documents[i];
+      const content = document.content;
+      const encoded = tokenizer.encode(content);
+      tokenCount += encoded.text.length;
+
+      // Limit context to max 1500 tokens
+      if (tokenCount > 1500) break;
+
+      contextText += `${content.trim()}\n---\n`;
+    }
+
+    // Build the prompt using common-tags
+    const prompt = stripIndent`${oneLine`
+      You are a very enthusiastic Supabase representative who loves
+      to help people! Given the following sections from the Supabase
+      documentation, answer the question using only that information,
+      outputted in markdown format. If you are unsure and the answer
+      is not explicitly written in the documentation, say
+      "Sorry, I don't know how to help with that."`}
+
+      Context sections:
+      ${contextText}
+
+      Question: """
+      ${query}
+      """
+
+      Answer as markdown (including related code snippets if available):
+    `;
+
+    // Generate the completion
+    const completionResponse = await openai.createCompletion({
+      model: 'text-davinci-003',
+      prompt,
+      max_tokens: 512,
+      temperature: 0,
+    });
+
+    const {
+      id,
+      choices: [{ text }],
+    } = completionResponse.data;
+
+    res.json({ id, text });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message || 'Internal Server Error' });
+  }
+});
+
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
+});
+```
