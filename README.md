@@ -1,5 +1,7 @@
 # vector-embeddings
 
+url[https://supabase.com/blog/openai-embeddings-postgres-vector]
+
 in this code I'm using `Semantic Search` using `Vector embeddings and Database` and create a conversational response using OpenAI gpt-4 model.
 
 ```js
